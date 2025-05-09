@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+coverage/
+.DS_Store
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets - add any files containing passwords or API keys
+.env
+
+# Docker
+docker-compose.override.yml
+
+# Operating System files
+.DS_Store
+Thumbs.db

@@ -25,26 +25,84 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-CATEGORIZATION_RULES = {
-    models.TransactionCategoryEnum.FOOD_DRINK: ["starbucks", "pizza", "restaurant", "cafe", "grocery"],
-    models.TransactionCategoryEnum.TRANSPORT: ["uber", "lyft", "taxi", "gas station", "metro", "transport"],
-    models.TransactionCategoryEnum.SHOPPING: ["amazon", "store", "purchase", "shop"],
-    models.TransactionCategoryEnum.ENTERTAINMENT: ["netflix", "spotify", "movie", "cinema", "game"],
-    models.TransactionCategoryEnum.UTILITIES: ["electricity bill", "water bill", "internet"],
-    models.TransactionCategoryEnum.HOUSING: ["rent", "mortgage"],
-    models.TransactionCategoryEnum.HEALTHCARE: ["pharmacy", "doctor", "hospital"],
-    models.TransactionCategoryEnum.INCOME: ["salary", "deposit", "income"],
-}
+# Rule management functions
+def get_rules(db: Session, user_id: Optional[int] = None, skip: int = 0, limit: int = 100):
+    query = db.query(models.Rule)
+    if user_id:
+        query = query.filter(models.Rule.owner_id == user_id)
+    return query.offset(skip).limit(limit).all()
 
-def auto_categorize_transaction(description: str, raw_text: Optional[str], amount: float) -> models.TransactionCategoryEnum:
-    if amount > 0:
-        return models.TransactionCategoryEnum.INCOME
+def create_rule(db: Session, rule: schemas.RuleCreate, user_id: Optional[int] = None):
+    db_rule = models.Rule(
+        name=rule.name,
+        pattern=rule.pattern,
+        category=rule.category,
+        priority=rule.priority,
+        owner_id=user_id
+    )
+    db.add(db_rule)
+    db.commit()
+    db.refresh(db_rule)
+    return db_rule
 
-    text_to_search = (description.lower() + " " + (raw_text.lower() if raw_text else "")).strip()
-    for category, keywords in CATEGORIZATION_RULES.items():
-        if any(keyword in text_to_search for keyword in keywords):
-            return category
-    return models.TransactionCategoryEnum.UNCATEGORIZED
+def update_rule(db: Session, rule_id: int, rule_update: schemas.RuleUpdate, user_id: Optional[int] = None):
+    db_rule = db.query(models.Rule).filter(models.Rule.id == rule_id)
+    if user_id:
+        db_rule = db_rule.filter(models.Rule.owner_id == user_id)
+    
+    db_rule = db_rule.first()
+    if not db_rule:
+        return None
+    
+    for key, value in rule_update.dict(exclude_unset=True).items():
+        setattr(db_rule, key, value)
+    
+    db.commit()
+    db.refresh(db_rule)
+    return db_rule
+
+def delete_rule(db: Session, rule_id: int, user_id: Optional[int] = None):
+    db_rule = db.query(models.Rule).filter(models.Rule.id == rule_id)
+    if user_id:
+        db_rule = db_rule.filter(models.Rule.owner_id == user_id)
+    
+    db_rule = db_rule.first()
+    if not db_rule:
+        return False
+    
+    db.delete(db_rule)
+    db.commit()
+    return True
+
+def get_active_rules(db: Session, user_id: Optional[int] = None) -> List[models.Rule]:
+    """Get all active rules for a user, sorted by priority."""
+    query = db.query(models.Rule).filter(models.Rule.is_active == True)
+    if user_id:
+        query = query.filter(models.Rule.owner_id == user_id)
+    return query.order_by(models.Rule.priority).all()
+
+def create_transaction(db: Session, transaction: schemas.TransactionCreate, user_id: Optional[int] = None):
+    """Create a new transaction and automatically categorize it using rules."""
+    db_transaction = models.Transaction(
+        date=transaction.date,
+        description=transaction.description,
+        amount=transaction.amount,
+        raw_text=transaction.raw_text,
+        category=transaction.category,
+        owner_id=user_id
+    )
+    
+    # Get active rules for this user
+    rules = get_active_rules(db, user_id)
+    
+    # If no category specified or it's UNCATEGORIZED, try to auto-categorize
+    if transaction.category == models.TransactionCategoryEnum.UNCATEGORIZED:
+        db_transaction.categorize(rules)
+    
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
 
 def create_transaction(db: Session, transaction: schemas.TransactionCreate, user_id: Optional[int] = None):
     if transaction.category == models.TransactionCategoryEnum.UNCATEGORIZED:

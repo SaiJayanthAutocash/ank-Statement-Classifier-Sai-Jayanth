@@ -51,3 +51,30 @@ class MonthlySummaryItem(BaseModel):
 class MonthlySummaryResponse(BaseModel):
     month: str
     summary: List[MonthlySummaryItem]
+
+# Rule schemas
+class RuleBase(BaseModel):
+    name: str
+    pattern: str
+    category: TransactionCategoryEnum
+    priority: int = 100
+    is_active: bool = True
+
+class RuleCreate(RuleBase):
+    pass
+
+class RuleUpdate(BaseModel):
+    name: Optional[str] = None
+    pattern: Optional[str] = None
+    category: Optional[TransactionCategoryEnum] = None
+    priority: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class Rule(RuleBase):
+    id: int
+    owner_id: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True

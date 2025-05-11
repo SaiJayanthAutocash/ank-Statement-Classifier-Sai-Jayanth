@@ -50,6 +50,46 @@ def read_transactions(
     transactions = crud.get_transactions(db, user_id=user_id, skip=skip, limit=limit)
     return transactions
 
+# Rule endpoints
+@router.get("/rules/", response_model=List[schemas.Rule])
+def read_rules(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    rules = crud.get_rules(db, user_id=current_user.id, skip=skip, limit=limit)
+    return rules
+
+@router.post("/rules/", response_model=schemas.Rule)
+def create_rule(
+    rule: schemas.RuleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    return crud.create_rule(db, rule, user_id=current_user.id)
+
+@router.put("/rules/{rule_id}/", response_model=schemas.Rule)
+def update_rule(
+    rule_id: int,
+    rule_update: schemas.RuleUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    updated_rule = crud.update_rule(db, rule_id, rule_update, user_id=current_user.id)
+    if not updated_rule:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return updated_rule
+
+@router.delete("/rules/{rule_id}/", response_model=bool)
+def delete_rule(
+    rule_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    success = crud.delete_rule(db, rule_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return True
+
 @router.patch("/{transaction_id}/category", response_model=schemas.Transaction)
 def update_transaction_category_api(
     transaction_id: int,

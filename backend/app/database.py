@@ -4,13 +4,11 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 import os
 
-# Construct DATABASE_URL if not already set
-if settings.DATABASE_URL is None:
-    DATABASE_URL = f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_SERVER}/{settings.POSTGRES_DB}"
-else:
-    DATABASE_URL = settings.DATABASE_URL
-
-engine = create_engine(DATABASE_URL)
+# SQLite configuration
+engine = create_engine(
+    settings.SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

@@ -6,11 +6,8 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Database
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "bankappuser"
-    POSTGRES_PASSWORD: str = "bankapppassword"
-    POSTGRES_DB: str = "bankdb"
-    DATABASE_URL: str | None = None
+    DATABASE_URL: str = "sqlite:///./bank.db"
+    SQLALCHEMY_DATABASE_URL: str = DATABASE_URL
 
     # JWT settings (Bonus: Authentication)
     SECRET_KEY: str = "Xjb9-2BNOFQj7oA3zbYYT9Q9rbcKid1Uv5fZJvvpEng"
